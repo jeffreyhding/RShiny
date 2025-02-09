@@ -1,5 +1,5 @@
 ## NBA Player Stat Visualizer
-**Description:** individual NBA player game stats and career progression, updated daily
+**Description:** Individual NBA player game stats and career progression, updated daily
 
 Interactive web app can be found here: https://jeffreyd.shinyapps.io/nba-players/
 
