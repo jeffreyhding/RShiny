@@ -12,5 +12,5 @@ Due to the limitations of Shiny web apps, the dataset used in the published app 
 
   1. Visit Moore's Kaggle link [here](https://www.kaggle.com/datasets/eoinamoore/historical-nba-data-and-player-box-scores) and download the `Players.csv` and `PlayerStatistics.csv` files. The game data is updated at the end of each game day, so you'll have to redownload the files you want daily for the most up-to-date stats.
   2. Open up the `nba-stats.qmd` and run the first two cells to clean the raw files.
-  3. **OPTIONAL** The third cell cuts down the data to the published version. The last two cells are for calculating rolling stat totals over players' careers. For reference on how the `cumulative_stat_sum` function is used, see line 255 of `nba-players.R`.
+  3. (**OPTIONAL**) The third cell cuts down the data to the published version. The last two cells are for calculating rolling stat totals over players' careers. For reference on how the `cumulative_stat_sum` function is used, see line 255 of `nba-players.R`.
 
