@@ -3,7 +3,7 @@
 
 Interactive web app can be found here: https://jeffreyd.shinyapps.io/nba-players/
 
-This app is a work in progress! I plan on adding more comprehensive filters, a tab for current season stats, player comparisons, and more.
+This app is a work in progress. I plan on adding more comprehensive filters, a tab for current season stats, player comparisons, and more!
 
 ___
 
