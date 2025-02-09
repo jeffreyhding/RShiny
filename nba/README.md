@@ -18,8 +18,6 @@ Due to the limitations of Shiny web apps, the dataset used in the published app 
 
 <br>
 
-Notes:
-
+**Notes:**
 - The cleaned CSVs for the full and published datasets are named `stats.csv` and `recent-stats.csv`, respectively. Modify lines 139 and 151 in `nba-stats.qmd` and lines 19-20 in `nba-players.R` accordingly if you'd like to save them under a different name.
-
 - The last two cells of `nba-stats.qmd` are for calculating rolling stat totals over players' careers. For reference on how the `cumulative_stat_sum` function is used, see line 255 of `nba-players.R`.
