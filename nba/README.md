@@ -20,7 +20,7 @@ Due to the limitations of Shiny web apps, the dataset used in the published app 
   4. Open up `nba-players.R` and check lines 19-20 to make sure you're loading the right CSV. Your app should be good to go!
 
 
-<br>
+___
 
 **Notes:**
 - The cleaned CSVs for the full and published datasets are named `stats.csv` and `recent-stats.csv`, respectively. Modify lines 139 and 151 in `nba-stats.qmd` and lines 19-20 in `nba-players.R` accordingly if you'd like to save them under a different name.
