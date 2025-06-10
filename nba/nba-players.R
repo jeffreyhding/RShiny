@@ -1,16 +1,16 @@
 # Title: NBA Player Stat Visualizer
 # Description: individual NBA player stats and career progression
 # Author: Jeffrey Ding
-# Last update: 3-11-2025
+# Last update: 6-9-2025
 
 # ===============================================
 # Packages
 # ===============================================
 library(shiny)
-library(tidyverse)  # for data manipulation and graphics
-library(plotly)     # for nicer plots
-library(lubridate)    # for working with dates
-library(DT)         # to render Data Tables nicely
+library(tidyverse)
+library(plotly)   
+library(lubridate)  
+library(DT)     
 
 
 # ===============================================
@@ -89,6 +89,7 @@ ui <- fluidPage(
                        maxItems = 1,
                        create = FALSE)),  # Disable creating new options
       
+      
       # Tab 1: Select timeframe
       conditionalPanel(
         condition = "input.tabselected == 1",
@@ -115,6 +116,16 @@ ui <- fluidPage(
                          multiple = FALSE))
       ),
       
+      # Tab 2: Select progression type
+      conditionalPanel(
+        condition = "input.tabselected == 2",
+        radioButtons(inputId = "progression_type",
+                     label = "Select progression type",
+                     choices = c("Rolling averages", "Season by season"),
+                     selected = "Rolling averages")
+      ),
+      
+      
       # Select stat
       selectInput(inputId = "stat",
                   label = "Select stat",
@@ -123,6 +134,7 @@ ui <- fluidPage(
                               "Steals" = "steals", "Blocks" = "blocks", "Turnovers" = "turnovers", "Minutes" = "minutes",
                               "Fantasy Points (ESPN Default)" = "fantasyPoints"),
                   selected = "points"),
+      
       
       # Tab 1 Widgets
       conditionalPanel(
@@ -626,9 +638,25 @@ server <- function(input, output, session) {
                        "turnovers" = "TO",
                        "fantasyPoints" = "FPTS")
     
+    season_data <- player_stats() |>
+      group_by(gameSeason) |>
+      summarize(games_played = n(),
+                avg_minutes = mean(minutes, na.rm = TRUE),
+                avg_stat = mean(.data[[input$stat]], na.rm = TRUE)) |>
+      ungroup() |>
+      mutate(season_label = paste0(gameSeason - 1, "-", gameSeason),
+             text = paste0("season: ", season_label,
+                           "<br>games played (incl. playoffs): ", games_played,
+                           "<br>MPG: ", round(avg_minutes, 2),
+                           "<br>", stat_abbr, "/G: ", round(avg_stat, 2)))
+    
     per_game_stat = paste0(input$stat, "PerGame")
     
-    title_p1 = paste0("Rolling Career ", stat_name, " Per Game")
+    if (input$progression_type == "Rolling averages") {
+      title_p1 = paste0("Rolling Career ", stat_name, " Per Game")
+    } else {
+      title_p1 = paste0("Season by Season ", stat_name, " Per Game")
+    }
     
     if (input$stat == "fantasyPoints") {
       y_end = 70
@@ -641,24 +669,41 @@ server <- function(input, output, session) {
       y_gap = 1
     }
     
-    # Smoothed line
-    p1 = player_stats() |>
-      ggplot(mapping = aes(x = careerGamesPlayed, 
-                           y = .data[[per_game_stat]])) +
-      geom_smooth(color="deepskyblue") +
-      labs(title = title_p1,
-           x = "Games Played",
-           y = paste0("Career ", stat_abbr, "/G")) +
-      scale_x_continuous(breaks = seq(0, 2000, 100)) +
-      scale_y_continuous(breaks = seq(0, y_end, y_gap),
-                         expand = c(0, 1)) +
-      theme(plot.background = element_rect(fill="seashell2"),
-            panel.background = element_rect(fill="seashell"),
-            panel.grid.major = element_line(color="grey70"),
-            axis.line = element_line(color="black"),
-            axis.text.x = element_text(angle = 45, hjust = 1))
+    if (input$progression_type == "Rolling averages") {
+      # Rolling averages plot
+      p1 <- player_stats() |>
+        ggplot(mapping = aes(x = careerGamesPlayed, 
+                             y = .data[[per_game_stat]])) +
+        geom_smooth(color = "steelblue") +
+        labs(title = title_p1,
+             x = "Games Played",
+             y = paste0("Career ", stat_abbr, "/G")) +
+        scale_x_continuous(breaks = seq(0, 2000, 100)) +
+        scale_y_continuous(breaks = seq(0, y_end, y_gap),
+                           expand = c(0, 1)) +
+        theme(plot.background = element_rect(fill = "seashell2"),
+              panel.background = element_rect(fill = "seashell"),
+              panel.grid.major = element_line(color = "grey70"),
+              axis.line = element_line(color = "black"),
+              axis.text.x = element_text(angle = 45, hjust = 1))
+      
+    } else {
+      # Season by season plot
+      p1 <- season_data |>
+        ggplot(aes(x = season_label, y = avg_stat, group = 1, text = text)) +
+        geom_line(color = "skyblue", size = 1.2) +
+        geom_point(color = "steelblue") +
+        labs(title = title_p1,
+             x = "Season",
+             y = paste0(stat_abbr, "/G")) +
+        theme(plot.background = element_rect(fill = "seashell2"),
+              panel.background = element_rect(fill = "seashell"),
+              panel.grid.major = element_line(color = "grey70"),
+              axis.line = element_line(color = "black"),
+              axis.text.x = element_text(angle = 45, hjust = 1))
+    }
     
-    ggplotly(p1)
+    ggplotly(p1, tooltip = "text")
   })
 }  # closes server
 
