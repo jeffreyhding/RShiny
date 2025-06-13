@@ -1,7 +1,7 @@
 # Title: NBA Player Stat Visualizer
 # Description: individual NBA player stats and career progression
 # Author: Jeffrey Ding
-# Last update: 6-9-2025
+# Last update: 6-13-2025
 
 # ===============================================
 # Packages
@@ -121,8 +121,8 @@ ui <- fluidPage(
         condition = "input.tabselected == 2",
         radioButtons(inputId = "progression_type",
                      label = "Select progression type",
-                     choices = c("Rolling averages", "Season by season"),
-                     selected = "Rolling averages")
+                     choices = c("Rolling career average", "Season-by-season average"),
+                     selected = "Rolling career average")
       ),
       
       
@@ -197,9 +197,8 @@ ui <- fluidPage(
     
     # -------------------------------------------------------
     # Main Panel with 2 Tabs: 
-    # Tab 1: Single Player Data
-    # Tab 2: Player Comparison
-    # Tab 3: 
+    # Tab 1: Recent Game Data
+    # Tab 2: Player Career Progression
     # -------------------------------------------------------
     mainPanel(
       tabsetPanel(
@@ -224,7 +223,9 @@ ui <- fluidPage(
                    tags$h3(tags$strong(textOutput("t2_title")), style = "font-size: 20px;")
                  ),
                  tableOutput(outputId = "t2_t1"),
-                 plotlyOutput(outputId = "t2_p1")
+                 plotlyOutput(outputId = "t2_p1"),
+                 fluidPage(
+                   textOutput("t2_p1_caption"))
                  # dataTableOutput(outputId="t1_t1")
         ),
         
@@ -495,13 +496,15 @@ server <- function(input, output, session) {
     )
     stat_abbr = switch(input$stat,
                        "points" = "PTS",
-                       "threePointersMade" = "3P",
-                       "freeThrowsMade" = "FT",
+                       "threePointersMade" = "3PM",
+                       "freeThrowsMade" = "FTM",
                        "reboundsTotal" = "TRB",
                        "assists" = "AST",
                        "steals" = "STL",
                        "blocks" = "BLK",
-                       "turnovers" = "TO")
+                       "turnovers" = "TO",
+                       "fantasyPoints" = "FPTS",
+                       "minutes" = "MIN")
     
     # Data from recent games with tooltip data
     plot_data <- recent_games_data() |>
@@ -511,10 +514,10 @@ server <- function(input, output, session) {
           home == FALSE ~ paste(playerteamName, "@", opponentteamName)
         ),
         text = paste0(opponent,
-                      "<br>", input$stat, ": ", .data[[input$stat]],
-                      "<br>mins: ", minutes,
-                      "<br>date: ", format(as.Date(gameDate), "%b %d, %Y"),
-                      "<br>type: ", gameType)
+                      "<br>", stat_abbr, ": ", .data[[input$stat]],
+                      "<br>Minutes: ", minutes,
+                      "<br>Date: ", format(as.Date(gameDate), "%b %d, %Y"),
+                      "<br>Type: ", gameType)
       )
     
     # Average of selected timeframe
@@ -595,6 +598,7 @@ server <- function(input, output, session) {
     "Click and drag to zoom in on interactive plot"
   })
   
+  
   # ------------------------------------------------
   # Tab 2: Output
   # ------------------------------------------------
@@ -629,14 +633,15 @@ server <- function(input, output, session) {
     )
     stat_abbr = switch(input$stat,
                        "points" = "PTS",
-                       "threePointersMade" = "3P",
-                       "freeThrowsMade" = "FT",
+                       "threePointersMade" = "3PM",
+                       "freeThrowsMade" = "FTM",
                        "reboundsTotal" = "TRB",
                        "assists" = "AST",
                        "steals" = "STL",
                        "blocks" = "BLK",
                        "turnovers" = "TO",
-                       "fantasyPoints" = "FPTS")
+                       "fantasyPoints" = "FPTS",
+                       "minutes" = "MIN")
     
     season_data <- player_stats() |>
       group_by(gameSeason) |>
@@ -645,17 +650,17 @@ server <- function(input, output, session) {
                 avg_stat = mean(.data[[input$stat]], na.rm = TRUE)) |>
       ungroup() |>
       mutate(season_label = paste0(gameSeason - 1, "-", gameSeason),
-             text = paste0("season: ", season_label,
-                           "<br>games played (incl. playoffs): ", games_played,
+             text = paste0("Season: ", season_label,
+                           "<br>Games played (incl. playoffs): ", games_played,
                            "<br>MPG: ", round(avg_minutes, 2),
                            "<br>", stat_abbr, "/G: ", round(avg_stat, 2)))
     
     per_game_stat = paste0(input$stat, "PerGame")
     
-    if (input$progression_type == "Rolling averages") {
-      title_p1 = paste0("Rolling Career ", stat_name, " Per Game")
+    if (input$progression_type == "Rolling career average") {
+      title_p1 = paste0("Average ", stat_name, " Per Game (Rolling)")
     } else {
-      title_p1 = paste0("Season by Season ", stat_name, " Per Game")
+      title_p1 = paste0("Average ", stat_name, " Per Game (Season-by-Season)")
     }
     
     if (input$stat == "fantasyPoints") {
@@ -669,12 +674,35 @@ server <- function(input, output, session) {
       y_gap = 1
     }
     
-    if (input$progression_type == "Rolling averages") {
+    if (input$progression_type == "Rolling career average") {
       # Rolling averages plot
+      p1_points <- player_stats() |>
+        group_by(gameSeason) |>
+        slice_min(gameDate, n = 1) |>
+        ungroup() |>
+        mutate(y_value = .data[[per_game_stat]],
+               text = paste0("Start of ", gameSeason - 1, "-", gameSeason, " season",
+                             "<br>Game number: ", careerGamesPlayed,
+                             "<br>", stat_abbr, "/G: ", round(y_value, 2)))
+      
+      latest_point <- player_stats() |>
+        filter(gameDate == max(gameDate, na.rm = TRUE)) |>
+        mutate(y_value = .data[[per_game_stat]],
+               text = paste0("Most recent game: ", format(as.Date(gameDate), "%b %d, %Y"),
+                             "<br>Career games played: ", careerGamesPlayed,
+                             "<br>Career ", stat_abbr, "/G: ", round(y_value, 2)))
+      
+      p1_points <- bind_rows(p1_points, latest_point)
+      
+      
       p1 <- player_stats() |>
-        ggplot(mapping = aes(x = careerGamesPlayed, 
-                             y = .data[[per_game_stat]])) +
-        geom_smooth(color = "steelblue") +
+        ggplot(aes(x = careerGamesPlayed, y = .data[[per_game_stat]])) +
+        geom_line(color = "skyblue", linewidth = 1.2) +
+        geom_smooth(method = "gam", formula = y ~ s(x, k=5), se = FALSE,
+                    color = "steelblue", linetype = "dotted", linewidth = 0.8) + 
+        geom_point(data = p1_points, aes(x = careerGamesPlayed, y = y_value, text = text),
+                   inherit.aes = FALSE,
+                   color = "steelblue") +
         labs(title = title_p1,
              x = "Games Played",
              y = paste0("Career ", stat_abbr, "/G")) +
@@ -691,7 +719,7 @@ server <- function(input, output, session) {
       # Season by season plot
       p1 <- season_data |>
         ggplot(aes(x = season_label, y = avg_stat, group = 1, text = text)) +
-        geom_line(color = "skyblue", size = 1.2) +
+        geom_line(color = "skyblue", linewidth = 1.2) +
         geom_point(color = "steelblue") +
         labs(title = title_p1,
              x = "Season",
@@ -704,6 +732,10 @@ server <- function(input, output, session) {
     }
     
     ggplotly(p1, tooltip = "text")
+  })
+  
+  output$t2_p1_caption <- renderText({
+    "Click and drag to zoom in on interactive plot"
   })
 }  # closes server
 
