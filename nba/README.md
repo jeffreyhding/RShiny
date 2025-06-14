@@ -16,7 +16,7 @@ Due to the limitations of Shiny web apps, the dataset used in the published app 
 
   1. Visit Moore's Kaggle [link](https://www.kaggle.com/datasets/eoinamoore/historical-nba-data-and-player-box-scores) and download the `Players.csv` and `PlayerStatistics.csv` files. The game data is updated at the end of each game day (usually around 1:00 AM PST), so you'll need to redownload the files you want daily to access the most up-to-date stats.
   2. Open up `nba-stats.qmd` and run the first two cells to clean the raw files and save them as new CSVs.
-  3. **(OPTIONAL)** Run the third cell to filter out players to match the published Shiny app. If you would like to modify the filters, edit this cell as you wish.
+  3. **(OPTIONAL)** Run the third cell to filter out players to match the published Shiny app. If you would like to filter a different set of players, the variable names for the data frame are listed in lines 79-120. Note that each row is a player's statistics from a single game.
   4. Open up `nba-players.R` and check lines 19-20 to make sure you're loading the right CSV. Your app should be good to go!
 
 
