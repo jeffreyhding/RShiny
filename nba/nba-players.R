@@ -1,7 +1,7 @@
 # Title: NBA Player Stat Visualizer
 # Description: individual NBA player stats and career progression
 # Author: Jeffrey Ding
-# Last update: 6-13-2025
+# Last update: 6-14-2025
 
 # ===============================================
 # Packages
@@ -191,7 +191,10 @@ ui <- fluidPage(
                        choices = c("None", 
                                    "Win/Loss" = "win"),
                        selected = "None"))
-      )
+      ),
+      
+      # Tab 2 Widgets
+      
     ), # closes sidebarPanel
     
     
@@ -224,6 +227,8 @@ ui <- fluidPage(
                  ),
                  tableOutput(outputId = "t2_t1"),
                  plotlyOutput(outputId = "t2_p1"),
+                 checkboxInput(inputId = "trendline",
+                               label = "Overlay trendline"),
                  fluidPage(
                    textOutput("t2_p1_caption"))
                  # dataTableOutput(outputId="t1_t1")
@@ -698,8 +703,6 @@ server <- function(input, output, session) {
       p1 <- player_stats() |>
         ggplot(aes(x = careerGamesPlayed, y = .data[[per_game_stat]])) +
         geom_line(color = "skyblue", linewidth = 1.2) +
-        geom_smooth(method = "gam", formula = y ~ s(x, k=5), se = FALSE,
-                    color = "steelblue", linetype = "dotted", linewidth = 0.8) + 
         geom_point(data = p1_points, aes(x = careerGamesPlayed, y = y_value, text = text),
                    inherit.aes = FALSE,
                    color = "steelblue") +
@@ -714,6 +717,12 @@ server <- function(input, output, session) {
               panel.grid.major = element_line(color = "grey70"),
               axis.line = element_line(color = "black"),
               axis.text.x = element_text(angle = 45, hjust = 1))
+      
+      if (input$trendline) {
+        p1 <- p1 +
+          geom_smooth(method = "gam", formula = y ~ s(x, k=5), se = FALSE,
+                      color = "steelblue", linetype = "dotted", linewidth = 0.8)
+      }
       
     } else {
       # Season by season plot
